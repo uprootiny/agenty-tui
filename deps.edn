@@ -1,0 +1,9 @@
+{:deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        babashka/http-client {:mvn/version "0.4.18"}
+        cheshire/cheshire {:mvn/version "5.12.0"}
+        babashka/fs {:mvn/version "0.5.20"}}
+ 
+ :paths ["src" "resources"]
+ 
+ :aliases {:dev {:extra-deps {org.clojure/tools.namespace {:mvn/version "1.4.4"}}}
+           :test {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}}}}

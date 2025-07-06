@@ -1,0 +1,7 @@
+.env
+.agenty-*
+target/
+.lsp/
+.clj-kondo/
+.cpcache/
+*.log
