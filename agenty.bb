@@ -31,7 +31,7 @@
 
 (def openrouter-key (or (System/getenv "OPENROUTER_API_KEY")
                         (:openrouter-api-key config)
-                        "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"))
+                        "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"))
 
 (def together-key (or (System/getenv "TOGETHER_API_KEY") (:together-api-key config)))
 
@@ -178,12 +178,49 @@
     "  /switch <agent>   - Switch to existing agent"
     "  /list             - List all agents"
     "  /delete <agent>   - Delete an agent"
+    "  /models           - List available models"
+    "  /model <name>     - Switch to model"
+    "  /provider <name>  - Switch provider"
     "  /status           - Show current status"
     "  /quiet            - Toggle quiet mode"
     "  /normal           - Toggle normal mode"
     "  /help             - Show this help"
     "  /exit             - Exit program"
     "Otherwise, type any message to chat with the current agent."))
+
+(defn list-models []
+  (let [current-prov @current-provider
+        current-mod @current-model]
+    (if (= @ui-mode :quiet)
+      (doseq [[provider provider-data] providers]
+        (doseq [[model-key model-name] (:models provider-data)]
+          (println (str (name provider) ":" (name model-key)))))
+      (do (ui-print "🤖 Available models:")
+          (doseq [[provider provider-data] providers]
+            (ui-print (format "\n%s %s:" 
+                             (if (= provider current-prov) "▶" " ")
+                             (name provider)))
+            (doseq [[model-key model-name] (:models provider-data)]
+              (ui-print (format "  %s %s (%s)"
+                               (if (and (= provider current-prov) (= model-key current-mod)) "●" "○")
+                               (name model-key) model-name))))))))
+
+(defn switch-model! [model-name]
+  (let [model-key (keyword model-name)
+        current-prov @current-provider
+        available-models (get-in providers [current-prov :models])]
+    (if (contains? available-models model-key)
+      (do (reset! current-model model-key)
+          (ui-print "🔀 Switched to model:" model-name))
+      (ui-print "⚠️ Model not available for current provider:" model-name))))
+
+(defn switch-provider! [provider-name]
+  (let [provider-key (keyword provider-name)]
+    (if (contains? providers provider-key)
+      (do (reset! current-provider provider-key)
+          (reset! current-model (first (keys (get-in providers [provider-key :models]))))
+          (ui-print "🔀 Switched to provider:" provider-name "with model:" (name @current-model)))
+      (ui-print "⚠️ Unknown provider:" provider-name))))
 
 (defn show-status []
   (let [{:keys [provider model-key model-name]} (get-current-config)
@@ -217,7 +254,16 @@
       (let [arg (str/trim (subs line 8))]
         (if (seq arg) (delete-agent! arg) (ui-print "⚠️ Usage: /delete <agent>")))
       
+      (str/starts-with? line "/model ")
+      (let [arg (str/trim (subs line 7))]
+        (if (seq arg) (switch-model! arg) (ui-print "⚠️ Usage: /model <model-name>")))
+      
+      (str/starts-with? line "/provider ")
+      (let [arg (str/trim (subs line 10))]
+        (if (seq arg) (switch-provider! arg) (ui-print "⚠️ Usage: /provider <openrouter|together>")))
+      
       (= line "/list") (list-agents)
+      (= line "/models") (list-models)
       (= line "/status") (show-status)
       (= line "/quiet") (do (reset! ui-mode :quiet) (ui-print-always "🔇 Quiet mode enabled"))
       (= line "/normal") (do (reset! ui-mode :normal) (ui-print-always "🔊 Normal mode enabled"))
