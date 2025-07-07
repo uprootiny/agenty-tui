@@ -30,8 +30,7 @@
 ;;; === API Config ===
 
 (def openrouter-key (or (System/getenv "OPENROUTER_API_KEY")
-                        (:openrouter-api-key config)
-                        "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"))
+                        (:openrouter-api-key config)))
 
 (def together-key (or (System/getenv "TOGETHER_API_KEY") (:together-api-key config)))
 
@@ -101,6 +100,7 @@
   (let [{:keys [provider model-name url api-key]} (get-current-config)]
     (try
       (when-not api-key
+        (ui-print "⚠️ No API key for" provider ". Set OPENROUTER_API_KEY or TOGETHER_API_KEY env var.")
         (throw (ex-info "No API key available" {:provider provider})))
       
       (let [payload {:model model-name :messages messages :temperature 0.7}
